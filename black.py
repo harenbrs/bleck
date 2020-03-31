@@ -3022,7 +3022,8 @@ def normalize_invisible_parens(node: Node, parens_after: Set[str]) -> None:
                 if maybe_make_parens_invisible_in_atom(child, parent=node):
                     wrap_in_parentheses(node, child, visible=False)
             elif is_one_tuple(child):
-                wrap_in_parentheses(node, child, visible=True)
+                # wrap_in_parentheses(node, child, visible=True)
+                pass
             elif node.type == syms.import_from:
                 # "import from" nodes store parentheses directly as part of
                 # the statement

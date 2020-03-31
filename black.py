@@ -792,9 +792,10 @@ def format_str(src_contents: str, *, mode: Mode) -> FileContent:
         if supports_feature(versions, feature)
     }
     for current_line in lines.visit(src_node):
-        dst_contents.append(str(empty_line) * after)
+        blank_indent = current_line.depth * "    "
+        dst_contents.append((blank_indent + str(empty_line)) * after)
         before, after = elt.maybe_empty_lines(current_line)
-        dst_contents.append(str(empty_line) * before)
+        dst_contents.append((blank_indent + str(empty_line)) * before)
         for line in split_line(
             current_line, line_length=mode.line_length, features=split_line_features
         ):

@@ -1929,6 +1929,7 @@ OPENING_BRACKETS = set(BRACKET.keys())
 CLOSING_BRACKETS = set(BRACKET.values())
 BRACKETS = OPENING_BRACKETS | CLOSING_BRACKETS
 ALWAYS_NO_SPACE = CLOSING_BRACKETS | {token.COMMA, STANDALONE_COMMENT}
+MATH_NO_SPACE = {token.DOUBLESTAR, token.DOUBLESLASH, token.STAR, token.SLASH, token.PERCENT}
 
 
 def whitespace(leaf: Leaf, *, complex_subscript: bool) -> str:  # noqa: C901
@@ -1957,10 +1958,25 @@ def whitespace(leaf: Leaf, *, complex_subscript: bool) -> str:  # noqa: C901
     }:
         return NO
 
+    if t in MATH_NO_SPACE and p.type not in {
+        syms.arglist,
+        syms.argument,
+        syms.dictsetmaker,
+        syms.import_from,
+        syms.parameters,
+        syms.star_expr,
+        syms.typedargslist,
+        syms.varargslist
+    }:
+        return NO
+
     prev = leaf.prev_sibling
     if not prev:
         prevp = preceding_leaf(p)
         if not prevp or prevp.type in OPENING_BRACKETS:
+            return NO
+
+        if prevp.type in MATH_NO_SPACE:
             return NO
 
         if t == token.COLON:
@@ -2013,6 +2029,9 @@ def whitespace(leaf: Leaf, *, complex_subscript: bool) -> str:  # noqa: C901
         ):
             # Python 2 print chevron
             return NO
+
+    elif prev.type in MATH_NO_SPACE:
+        return NO
 
     elif prev.type in OPENING_BRACKETS:
         return NO

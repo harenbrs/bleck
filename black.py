@@ -2753,7 +2753,7 @@ def delimiter_split(line: Line, features: Collection[Feature] = ()) -> Iterator[
 
     current_line = Line(depth=line.depth, inside_brackets=line.inside_brackets)
     lowest_depth = sys.maxsize
-    trailing_comma_safe = True
+    trailing_comma_safe = False
 
     def append_to_line(leaf: Leaf) -> Iterator[Line]:
         """Append `leaf` to current line or to new line if appending impossible."""

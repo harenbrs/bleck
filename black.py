@@ -1967,7 +1967,7 @@ def whitespace(leaf: Leaf, *, complex_subscript: bool) -> str:  # noqa: C901
             if prevp.type == token.COLON:
                 return NO
 
-            elif prevp.type != token.COMMA and not complex_subscript:
+            elif prevp.type != token.COMMA:
                 return NO
 
             return SPACE
@@ -1994,7 +1994,7 @@ def whitespace(leaf: Leaf, *, complex_subscript: bool) -> str:  # noqa: C901
 
         elif prevp.type == token.COLON:
             if prevp.parent and prevp.parent.type in {syms.subscript, syms.sliceop}:
-                return SPACE if complex_subscript else NO
+                return NO
 
         elif (
             prevp.parent
@@ -2107,10 +2107,7 @@ def whitespace(leaf: Leaf, *, complex_subscript: bool) -> str:  # noqa: C901
             if p.parent.type == syms.subscriptlist:
                 return SPACE
 
-            return NO
-
-        elif not complex_subscript:
-            return NO
+        return NO
 
     elif p.type == syms.atom:
         if prev and t == token.DOT:

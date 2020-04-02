@@ -440,7 +440,7 @@ def main(
         target_versions=versions,
         line_length=line_length,
         is_pyi=pyi,
-        string_normalization=not skip_string_normalization,
+        string_normalization=False,
     )
     if config and verbose:
         out(f"Using configuration from {config}.", bold=False, fg="blue")

@@ -1,3 +1,14 @@
+## Differences compared to upstream
+
+- Empty lines gain/retain indentation according to context
+- Single-element tuples are not automatically wrapped in parentheses
+- `**`, `*`, `/`, `//`, `%` do not have spaces around them. This is in order to indicate the higher precedence compared to `+`, `-`, etc. (Note: this includes old-style string formatting with `%`, but I never use it anymore so all `%` operations are assumed to be arithmetical)
+- Slicing colons (`:`) are never padded with spaces, even with complex subscript expressions
+- Trailing commas are not automatically added to data literals
+- String normalisation is always skipped
+
+Original readme below:
+
 ![Black Logo](https://raw.githubusercontent.com/psf/black/master/docs/_static/logo2-readme.png)
 
 <h2 align="center">The Uncompromising Code Formatter</h2>

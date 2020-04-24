@@ -749,7 +749,7 @@ Configuration:
 To install with [vim-plug](https://github.com/junegunn/vim-plug):
 
 ```
-Plug 'psf/black'
+Plug 'psf/black', { 'branch': 'stable' }
 ```
 
 or with [Vundle](https://github.com/VundleVim/Vundle.vim):
@@ -758,8 +758,15 @@ or with [Vundle](https://github.com/VundleVim/Vundle.vim):
 Plugin 'psf/black'
 ```
 
+and execute the following in a terminal:
+
+```console
+$ cd ~/.vim/bundle/black
+$ git checkout origin/stable -b stable
+```
+
 or you can copy the plugin from
-[plugin/black.vim](https://github.com/psf/black/tree/master/plugin/black.vim).
+[plugin/black.vim](https://github.com/psf/black/blob/stable/plugin/black.vim).
 
 ```
 mkdir -p ~/.vim/pack/python/start/black/plugin

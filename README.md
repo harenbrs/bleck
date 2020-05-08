@@ -72,36 +72,41 @@ black {source_file_or_directory}
 _Black_ doesn't provide many options. You can list them by running `black --help`:
 
 ```text
-black [OPTIONS] [SRC]...
+Usage: black [OPTIONS] [SRC]...
+
+  The uncompromising code formatter.
 
 Options:
   -c, --code TEXT                 Format the code passed in as a string.
   -l, --line-length INTEGER       How many characters per line to allow.
                                   [default: 88]
+
   -t, --target-version [py27|py33|py34|py35|py36|py37|py38]
                                   Python versions that should be supported by
                                   Black's output. [default: per-file auto-
                                   detection]
-  --py36                          Allow using Python 3.6-only syntax on all
-                                  input files.  This will put trailing commas
-                                  in function signatures and calls also after
-                                  *args and **kwargs. Deprecated; use
-                                  --target-version instead. [default: per-file
-                                  auto-detection]
+
   --pyi                           Format all input files like typing stubs
                                   regardless of file extension (useful when
                                   piping source on standard input).
+
   -S, --skip-string-normalization
                                   Don't normalize string quotes or prefixes.
   --check                         Don't write the files back, just return the
                                   status.  Return code 0 means nothing would
                                   change.  Return code 1 means some files
-                                  would be reformatted.  Return code 123 means
+                                  would be reformatted. Return code 123 means
                                   there was an internal error.
+
   --diff                          Don't write the files back, just output a
                                   diff for each file on stdout.
+
+  --color / --no-color            Show colored diff. Only applies when
+                                  `--diff` is given.
+
   --fast / --safe                 If --fast given, skip temporary sanity
                                   checks. [default: --safe]
+
   --include TEXT                  A regular expression that matches files and
                                   directories that should be included on
                                   recursive searches.  An empty value means
@@ -110,6 +115,7 @@ Options:
                                   on all platforms (Windows, too).  Exclusions
                                   are calculated first, inclusions later.
                                   [default: \.pyi?$]
+
   --exclude TEXT                  A regular expression that matches files and
                                   directories that should be excluded on
                                   recursive searches.  An empty value means no
@@ -117,16 +123,23 @@ Options:
                                   directories on all platforms (Windows, too).
                                   Exclusions are calculated first, inclusions
                                   later.  [default: /(\.eggs|\.git|\.hg|\.mypy
-                                  _cache|\.nox|\.tox|\.venv|_build|buck-
+                                  _cache|\.nox|\.tox|\.venv|\.svn|_build|buck-
                                   out|build|dist)/]
+
+  --force-exclude TEXT            Like --exclude, but files and directories
+                                  matching this regex will be excluded even
+                                  when they are passed explicitly as arguments
+
   -q, --quiet                     Don't emit non-error messages to stderr.
-                                  Errors are still emitted, silence those with
+                                  Errors are still emitted; silence those with
                                   2>/dev/null.
+
   -v, --verbose                   Also emit messages to stderr about files
                                   that were not changed or were ignored due to
                                   --exclude=.
+
   --version                       Show the version and exit.
-  --config PATH                   Read configuration from PATH.
+  --config FILE                   Read configuration from PATH.
   -h, --help                      Show this message and exit.
 ```
 
@@ -137,6 +150,16 @@ _Black_ is a well-behaved Unix-style command-line tool:
   filename;
 - it only outputs messages to users on standard error;
 - exits with code 0 unless an internal error occurred (or `--check` was used).
+
+### Using _Black_ with other tools
+
+While _Black_ enforces formatting that conforms to PEP 8, other tools may raise warnings
+about _Black_'s changes or will overwrite _Black_'s changes. A good example of this is
+[isort](https://pypi.org/p/isort). Since _Black_ is barely configurable, these tools
+should be configured to neither warn about nor overwrite _Black_'s changes.
+
+Actual details on _Black_ compatible configurations for various tools can be found in
+[compatible_configs](./docs/compatible_configs.md).
 
 ### NOTE: This is a beta product
 
@@ -632,8 +655,11 @@ file hierarchy.
 
 ### Emacs
 
-Use [proofit404/blacken](https://github.com/proofit404/blacken) or
-[Elpy](https://github.com/jorgenschaefer/elpy).
+Options include the following:
+
+- [purcell/reformatter.el](https://github.com/purcell/reformatter.el)
+- [proofit404/blacken](https://github.com/proofit404/blacken)
+- [Elpy](https://github.com/jorgenschaefer/elpy).
 
 ### PyCharm/IntelliJ IDEA
 
@@ -658,6 +684,9 @@ On Windows:
 $ where black
 %LocalAppData%\Programs\Python\Python36-32\Scripts\black.exe  # possible location
 ```
+
+Note that if you are using a virtual environment detected by PyCharm, this is an
+unneeded step. In this case the path to `black` is `$PyInterpreterDirectory$/black`.
 
 3. Open External tools in PyCharm/IntelliJ IDEA
 
@@ -804,6 +833,55 @@ nnoremap <F9> :Black<CR>
 default. On macOS with Homebrew run: `brew install vim`. When building Vim from source,
 use: `./configure --enable-python3interp=yes`. There's many guides online how to do
 this.
+
+**I get an import error when using _Black_ from a virtual environment**: If you get an
+error message like this:
+
+```text
+Traceback (most recent call last):
+  File "<string>", line 63, in <module>
+  File "/home/gui/.vim/black/lib/python3.7/site-packages/black.py", line 45, in <module>
+    from typed_ast import ast3, ast27
+  File "/home/gui/.vim/black/lib/python3.7/site-packages/typed_ast/ast3.py", line 40, in <module>
+    from typed_ast import _ast3
+ImportError: /home/gui/.vim/black/lib/python3.7/site-packages/typed_ast/_ast3.cpython-37m-x86_64-linux-gnu.so: undefined symbool: PyExc_KeyboardInterrupt
+```
+
+Then you need to install `typed_ast` and `regex` directly from the source code. The
+error happens because `pip` will download [Python wheels](https://pythonwheels.com/) if
+they are available. Python wheels are a new standard of distributing Python packages and
+packages that have Cython and extensions written in C are already compiled, so the
+installation is much more faster. The problem here is that somehow the Python
+environment inside Vim does not match with those already compiled C extensions and these
+kind of errors are the result. Luckily there is an easy fix: installing the packages
+from the source code.
+
+The two packages that cause the problem are:
+
+- [regex](https://pypi.org/project/regex/)
+- [typed-ast](https://pypi.org/project/typed-ast/)
+
+Now remove those two packages:
+
+```console
+$ pip uninstall regex typed-ast -y
+```
+
+And now you can install them with:
+
+```console
+$ pip install --no-binary :all: regex typed-ast
+```
+
+The C extensions will be compiled and now Vim's Python environment will match. Note that
+you need to have the GCC compiler and the Python development files installed (on
+Ubuntu/Debian do `sudo apt-get install build-essential python3-dev`).
+
+If you later want to update _Black_, you should do it like this:
+
+```console
+$ pip install -U black --no-binary regex,typed-ast
+```
 
 ### Visual Studio Code
 
@@ -995,6 +1073,8 @@ The following notable open-source projects trust _Black_ with enforcing a consis
 code style: pytest, tox, Pyramid, Django Channels, Hypothesis, attrs, SQLAlchemy,
 Poetry, PyPA applications (Warehouse, Pipenv, virtualenv), pandas, Pillow, every Datadog
 Agent Integration, Home Assistant.
+
+The following organizations use _Black_: Dropbox.
 
 Are we missing anyone? Let us know.
 

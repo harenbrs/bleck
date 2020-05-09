@@ -159,7 +159,7 @@ about _Black_'s changes or will overwrite _Black_'s changes. A good example of t
 should be configured to neither warn about nor overwrite _Black_'s changes.
 
 Actual details on _Black_ compatible configurations for various tools can be found in
-[compatible_configs](./docs/compatible_configs.md).
+[compatible_configs](https://github.com/psf/black/blob/master/docs/compatible_configs.md).
 
 ### NOTE: This is a beta product
 
@@ -247,6 +247,69 @@ def very_important_function(
     """Applies `variables` to the `template` and writes to `file`."""
     with open(file, "w") as f:
         ...
+```
+
+_Black_ prefers parentheses over backslashes, and will remove backslashes if found.
+
+```py3
+# in:
+
+if some_short_rule1 \
+  and some_short_rule2:
+      ...
+
+# out:
+
+if some_short_rule1 and some_short_rule2:
+  ...
+
+
+# in:
+
+if some_long_rule1 \
+  and some_long_rule2:
+    ...
+
+# out:
+
+if (
+    some_long_rule1
+    and some_long_rule2
+):
+    ...
+
+```
+
+Backslashes and multiline strings are one of the two places in the Python grammar that
+break significant indentation. You never need backslashes, they are used to force the
+grammar to accept breaks that would otherwise be parse errors. That makes them confusing
+to look at and brittle to modify. This is why _Black_ always gets rid of them.
+
+If you're reaching for backslashes, that's a clear signal that you can do better if you
+slightly refactor your code. I hope some of the examples above show you that there are
+many ways in which you can do it.
+
+However there is one exception: `with` statements using multiple context managers.
+Python's grammar does not allow organizing parentheses around the series of context
+managers.
+
+We don't want formatting like:
+
+```py3
+with make_context_manager1() as cm1, make_context_manager2() as cm2, make_context_manager3() as cm3, make_context_manager4() as cm4:
+    ...  # nothing to split on - line too long
+```
+
+So _Black_ will now format it like this:
+
+```py3
+with \
+     make_context_manager(1) as cm1, \
+     make_context_manager(2) as cm2, \
+     make_context_manager(3) as cm3, \
+     make_context_manager(4) as cm4 \
+:
+    ...  # backslashes and an ugly stranded colon
 ```
 
 You might have noticed that closing brackets are always dedented and that a trailing
@@ -1133,13 +1196,14 @@ other hand, if your answer is "because I don't like a particular formatting" the
 not ready to embrace _Black_ yet. Such changes are unlikely to get accepted. You can
 still try but prepare to be disappointed.
 
-More details can be found in [CONTRIBUTING](CONTRIBUTING.md).
+More details can be found in
+[CONTRIBUTING](https://github.com/psf/black/blob/master/CONTRIBUTING.md).
 
 ## Change Log
 
 The log's become rather long. It moved to its own file.
 
-See [CHANGES](CHANGES.md).
+See [CHANGES](https://github.com/psf/black/blob/master/CHANGES.md).
 
 ## Authors
 

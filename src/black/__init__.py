@@ -4861,7 +4861,7 @@ def bracket_split_build_line(
                     if leaves[i].type == STANDALONE_COMMENT:
                         continue
 
-                    if leaves[i].type != token.COMMA:
+                    if leaves[i].type != token.COMMA and not original.is_import:
                         leaves.insert(i + 1, Leaf(token.COMMA, ","))
                     break
 

@@ -310,7 +310,7 @@ def read_pyproject_toml(
     target_version = config.get("target_version")
     if target_version is not None and not isinstance(target_version, list):
         raise click.BadOptionUsage(
-            "target-version", f"Config key target-version must be a list"
+            "target-version", "Config key target-version must be a list"
         )
 
     default_map: Dict[str, Any] = {}
@@ -1634,8 +1634,10 @@ class Line:
         # one line in the original code.
 
         # Grab the first and last line numbers, skipping generated leaves
-        first_line = next((l.lineno for l in self.leaves if l.lineno != 0), 0)
-        last_line = next((l.lineno for l in reversed(self.leaves) if l.lineno != 0), 0)
+        first_line = next((leaf.lineno for leaf in self.leaves if leaf.lineno != 0), 0)
+        last_line = next(
+            (leaf.lineno for leaf in reversed(self.leaves) if leaf.lineno != 0), 0
+        )
 
         if first_line == last_line:
             # We look at the last two leaves since a comma or an
@@ -2727,15 +2729,15 @@ def transform_line(
         # split altogether.
         result: List[Line] = []
         try:
-            for l in transform(line, features):
-                if str(l).strip("\n") == line_str:
+            for transformed_line in transform(line, features):
+                if str(transformed_line).strip("\n") == line_str:
                     raise CannotTransform(
                         "Line transformer returned an unchanged result"
                     )
 
                 result.extend(
                     transform_line(
-                        l,
+                        transformed_line,
                         line_length=line_length,
                         normalize_strings=normalize_strings,
                         features=features,
@@ -4853,7 +4855,7 @@ def bracket_split_build_line(
             no_commas = (
                 original.is_def
                 and opening_bracket.value == "("
-                and not any(l.type == token.COMMA for l in leaves)
+                and not any(leaf.type == token.COMMA for leaf in leaves)
             )
 
             if original.is_import or no_commas:
@@ -4883,9 +4885,9 @@ def dont_increase_indentation(split_func: Transformer) -> Transformer:
 
     @wraps(split_func)
     def split_wrapper(line: Line, features: Collection[Feature] = ()) -> Iterator[Line]:
-        for l in split_func(line, features):
-            normalize_prefix(l.leaves[0], inside_brackets=True)
-            yield l
+        for line in split_func(line, features):
+            normalize_prefix(line.leaves[0], inside_brackets=True)
+            yield line
 
     return split_wrapper
 
@@ -6024,13 +6026,14 @@ def _stringify_ast(
 
         else:
             # Constant strings may be indented across newlines, if they are
-            # docstrings; fold spaces after newlines when comparing
+            # docstrings; fold spaces after newlines when comparing. Similarly,
+            # trailing and leading space may be removed.
             if (
                 isinstance(node, ast.Constant)
                 and field == "value"
                 and isinstance(value, str)
             ):
-                normalized = re.sub(r"\n[ \t]+", "\n ", value)
+                normalized = re.sub(r" *\n[ \t]+", "\n ", value).strip()
             else:
                 normalized = value
             yield f"{'  ' * (depth+2)}{normalized!r},  # {value.__class__.__name__}"

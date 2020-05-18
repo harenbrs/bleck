@@ -44,9 +44,10 @@ Try it out now using the [Black Playground](https://black.now.sh). Watch the
 _Contents:_ **[Installation and usage](#installation-and-usage)** |
 **[Code style](#the-black-code-style)** | **[Pragmatism](#pragmatism)** |
 **[pyproject.toml](#pyprojecttoml)** | **[Editor integration](#editor-integration)** |
-**[blackd](#blackd)** | **[Version control integration](#version-control-integration)**
-| **[Ignoring unmodified files](#ignoring-unmodified-files)** | **[Used by](#used-by)**
-| **[Testimonials](#testimonials)** | **[Show your style](#show-your-style)** |
+**[blackd](#blackd)** | **[black-primer](#black-primer)** |
+**[Version control integration](#version-control-integration)** |
+**[Ignoring unmodified files](#ignoring-unmodified-files)** | **[Used by](#used-by)** |
+**[Testimonials](#testimonials)** | **[Show your style](#show-your-style)** |
 **[Contributing](#contributing-to-black)** | **[Change Log](#change-log)** |
 **[Authors](#authors)**
 
@@ -63,7 +64,7 @@ run but you can reformat Python 2 code with it, too.
 
 To get started right away with sensible defaults:
 
-```
+```sh
 black {source_file_or_directory}
 ```
 
@@ -160,6 +161,50 @@ should be configured to neither warn about nor overwrite _Black_'s changes.
 
 Actual details on _Black_ compatible configurations for various tools can be found in
 [compatible_configs](https://github.com/psf/black/blob/master/docs/compatible_configs.md).
+
+### Migrating your code style without ruining git blame
+
+A long-standing argument against moving to automated code formatters like _Black_ is
+that the migration will clutter up the output of `git blame`. This was a valid argument,
+but since Git version 2.23, Git natively supports
+[ignoring revisions in blame](https://git-scm.com/docs/git-blame#Documentation/git-blame.txt---ignore-revltrevgt)
+with the `--ignore-rev` option. You can also pass a file listing the revisions to ignore
+using the `--ignore-revs-file` option. The changes made by the revision will be ignored
+when assigning blame. Lines modified by an ignored revision will be blamed on the
+previous revision that modified those lines.
+
+So when migrating your project's code style to _Black_, reformat everything and commit
+the changes (preferably in one massive commit). Then put the full 40 characters commit
+identifier(s) into a file.
+
+```
+# Migrate code style to Black
+5b4ab991dede475d393e9d69ec388fd6bd949699
+```
+
+Afterwards, you can pass that file to `git blame` and see clean and meaningful blame
+information.
+
+```console
+$ git blame important.py --ignore-revs-file .git-blame-ignore-revs
+7a1ae265 (John Smith 2019-04-15 15:55:13 -0400 1) def very_important_function(text, file):
+abdfd8b0 (Alice Doe  2019-09-23 11:39:32 -0400 2)     text = text.lstrip()
+7a1ae265 (John Smith 2019-04-15 15:55:13 -0400 3)     with open(file, "r+") as f:
+7a1ae265 (John Smith 2019-04-15 15:55:13 -0400 4)         f.write(formatted)
+```
+
+You can even configure `git` to automatically ignore revisions listed in a file on every
+call to `git blame`.
+
+```console
+$ git config blame.ignoreRevsFile .git-blame-ignore-revs
+```
+
+**The one caveat is that GitHub and GitLab do not yet support ignoring revisions using
+their native UI of blame.** So blame information will be cluttered with a reformatting
+commit on those platforms. (If you'd like this feature, there's an open issue for
+[GitLab](https://gitlab.com/gitlab-org/gitlab/-/issues/31423) and please let GitHub
+know!)
 
 ### NOTE: This is a beta product
 
@@ -492,9 +537,12 @@ PEP 8
 [recommends](https://www.python.org/dev/peps/pep-0008/#whitespace-in-expressions-and-statements)
 to treat `:` in slices as a binary operator with the lowest priority, and to leave an
 equal amount of space on either side, except if a parameter is omitted (e.g.
-`ham[1 + 1 :]`). It also states that for extended slices, both `:` operators have to
-have the same amount of spacing, except if a parameter is omitted (`ham[1 + 1 ::]`).
-_Black_ enforces these rules consistently.
+`ham[1 + 1 :]`). It recommends no spaces around `:` operators for "simple expressions"
+(`ham[lower:upper]`), and extra space for "complex expressions"
+(`ham[lower : upper + offset]`). _Black_ treats anything more than variable names as
+"complex" (`ham[lower : upper + 1]`). It also states that for extended slices, both `:`
+operators have to have the same amount of spacing, except if a parameter is omitted
+(`ham[1 + 1 ::]`). _Black_ enforces these rules consistently.
 
 This behaviour may raise `E203 whitespace before ':'` warnings in style guide
 enforcement tools like Flake8. Since `E203` is not PEP 8 compliant, you should tell
@@ -1032,7 +1080,7 @@ Options:
 There is no official blackd client tool (yet!). You can test that blackd is working
 using `curl`:
 
-```
+```sh
 blackd --bind-port 9090 &  # or let blackd choose a port
 curl -s -XPOST "localhost:9090" -d "print('valid')"
 ```
@@ -1081,6 +1129,124 @@ Apart from the above, `blackd` can produce the following response codes:
 The response headers include a `X-Black-Version` header containing the version of
 _Black_.
 
+## black-primer
+
+`black-primer` is a tool built for CI (and huumans) to have _Black_ `--check` a number
+of (configured in `primer.json`) Git accessible projects in parallel. _(A PR will be
+accepted to add Mercurial support.)_
+
+### Run flow
+
+- Ensure we have a `black` + `git` in PATH
+- Load projects from `primer.json`
+- Run projects in parallel with `--worker` workers (defaults to CPU count / 2)
+  - Checkout projects
+  - Run black and record result
+  - Clean up repository checkout _(can optionally be disabled via `--keep`)_
+- Display results summary to screen
+- Default to cleaning up `--work-dir` (which defaults to tempfile schemantics)
+- Return
+  - 0 for successful run
+  - < 0 for environment / internal error
+  - > 0 for each project with an error
+
+### Speed up Runs 🏎
+
+If you're running locally yourself to test black on lots of code try:
+
+- Using `-k` / `--keep` + `-w` / `--work-dir` so you don't have to re-checkout the repo
+  each run
+
+### CLI Arguments
+
+```text
+Usage: black-primer [OPTIONS]
+
+  primer - prime projects for blackening ... 🏴
+
+Options:
+  -c, --config PATH      JSON config file path  [default: /Users/cooper/repos/
+                         black/src/black_primer/primer.json]
+
+  --debug                Turn on debug logging  [default: False]
+  -k, --keep             Keep workdir + repos post run  [default: False]
+  -L, --long-checkouts   Pull big projects to test  [default: False]
+  -R, --rebase           Rebase project if already checked out  [default:
+                         False]
+
+  -w, --workdir PATH     Directory Path for repo checkouts  [default: /var/fol
+                         ders/tc/hbwxh76j1hn6gqjd2n2sjn4j9k1glp/T/primer.20200
+                         517125229]
+
+  -W, --workers INTEGER  Number of parallel worker coroutines  [default: 69]
+  -h, --help             Show this message and exit.
+```
+
+### primer config file
+
+The config is `JSON` format. It's main element is the `"projects"` dictionary. Below
+explains each parameter:
+
+```json
+{
+  "projects": {
+    "00_Example": {
+      "cli_arguments": "List of extra CLI arguments to pass Black for this project",
+      "expect_formatting_changes": "Boolean to indicate that the version of Black is expected to cause changes",
+      "git_clone_url": "URL you would pass `git clone` to check out this repo",
+      "long_checkout": "Boolean to have repo skipped by defauult unless `--long-checkouts` is specified",
+      "py_versions": "List of major Python versions to run this project with - all will do as you'd expect - run on ALL versions"
+    },
+    "aioexabgp": {
+      "cli_arguments": [],
+      "expect_formatting_changes": true,
+      "git_clone_url": "https://github.com/cooperlees/aioexabgp.git",
+      "long_checkout": false,
+      "py_versions": ["all", "3.8"] // "all" ignores all other versions
+    }
+  }
+}
+```
+
+### Example run
+
+```console
+cooper-mbp:black cooper$ ~/venvs/b/bin/black-primer
+[2020-05-17 13:06:40,830] INFO: 4 projects to run black over (lib.py:270)
+[2020-05-17 13:06:44,215] INFO: Analyzing results (lib.py:285)
+-- primer results 📊 --
+
+3 / 4 succeeded (75.0%) ✅
+1 / 4 FAILED (25.0%) 💩
+ - 0 projects Disabled by config
+ - 0 projects skipped due to Python Version
+ - 0 skipped due to long checkout
+
+Failed Projects:
+
+## flake8-bugbear:
+ - Returned 1
+ - stdout:
+--- tests/b303_b304.py	2020-05-17 20:04:09.991227 +0000
++++ tests/b303_b304.py	2020-05-17 20:06:42.753851 +0000
+@@ -26,11 +26,11 @@
+     maxint = 5  # this is okay
+     # the following shouldn't crash
+     (a, b, c) = list(range(3))
+     # it's different than this
+     a, b, c = list(range(3))
+-    a, b, c, = list(range(3))
++    a, b, c = list(range(3))
+     # and different than this
+     (a, b), c = list(range(3))
+     a, *b, c = [1, 2, 3, 4, 5]
+     b[1:3] = [0, 0]
+
+would reformat tests/b303_b304.py
+Oh no! 💥 💔 💥
+1 file would be reformatted, 22 files would be left unchanged.
+```
+
 ## Version control integration
 
 Use [pre-commit](https://pre-commit.com/). Once you
@@ -1105,7 +1271,7 @@ for your project. See _Black_'s own
 example.
 
 If you're already using Python 3.7, switch the `language_version` accordingly. Finally,
-`stable` is a tag that is pinned to the latest release on PyPI. If you'd rather run on
+`stable` is a branch that tracks the latest release on PyPI. If you'd rather run on
 master, this is also an option.
 
 ## Ignoring unmodified files
@@ -1134,10 +1300,10 @@ then write the above files to `.cache/black/<version>/`.
 
 The following notable open-source projects trust _Black_ with enforcing a consistent
 code style: pytest, tox, Pyramid, Django Channels, Hypothesis, attrs, SQLAlchemy,
-Poetry, PyPA applications (Warehouse, Pipenv, virtualenv), pandas, Pillow, every Datadog
-Agent Integration, Home Assistant.
+Poetry, PyPA applications (Warehouse, Bandersnatch, Pipenv, virtualenv), pandas, Pillow,
+every Datadog Agent Integration, Home Assistant.
 
-The following organizations use _Black_: Dropbox.
+The following organizations use _Black_: Facebook, Dropbox.
 
 Are we missing anyone? Let us know.
 

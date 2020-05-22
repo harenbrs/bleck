@@ -16,6 +16,7 @@ Original readme below:
 <p align="center">
 <a href="https://travis-ci.com/psf/black"><img alt="Build Status" src="https://travis-ci.com/psf/black.svg?branch=master"></a>
 <a href="https://github.com/psf/black/actions"><img alt="Actions Status" src="https://github.com/psf/black/workflows/Test/badge.svg"></a>
+<a href="https://github.com/psf/black/actions"><img alt="Actions Status" src="https://github.com/psf/black/workflows/Primer/badge.svg"></a>
 <a href="https://black.readthedocs.io/en/stable/?badge=stable"><img alt="Documentation Status" src="https://readthedocs.org/projects/black/badge/?version=stable"></a>
 <a href="https://coveralls.io/github/psf/black?branch=master"><img alt="Coverage Status" src="https://coveralls.io/repos/github/psf/black/badge.svg?branch=master"></a>
 <a href="https://github.com/psf/black/blob/master/LICENSE"><img alt="License: MIT" src="https://black.readthedocs.io/en/stable/_static/license.svg"></a>
@@ -824,7 +825,7 @@ On Windows / Linux / BSD:
 6. Optionally, run _Black_ on every file save:
 
    1. Make sure you have the
-      [File Watcher](https://plugins.jetbrains.com/plugin/7177-file-watchers) plugin
+      [File Watchers](https://plugins.jetbrains.com/plugin/7177-file-watchers) plugin
       installed.
    2. Go to `Preferences or Settings -> Tools -> File Watchers` and click `+` to add a
       new watcher:
@@ -836,7 +837,7 @@ On Windows / Linux / BSD:
       - Output paths to refresh: `$FilePath$`
       - Working directory: `$ProjectFileDir$`
 
-   - Uncheck "Auto-save edited files to trigger the watcher"
+   - Uncheck "Auto-save edited files to trigger the watcher" in Advanced Options
 
 ### Wing IDE
 
@@ -1021,7 +1022,7 @@ Use [python-black](https://atom.io/packages/python-black).
 
 ### Kakoune
 
-Add the following hook to your kakrc, then run black with `:format`.
+Add the following hook to your kakrc, then run _Black_ with `:format`.
 
 ```
 hook global WinSetOption filetype=python %{
@@ -1162,7 +1163,7 @@ If you're running locally yourself to test black on lots of code try:
 ```text
 Usage: black-primer [OPTIONS]
 
-  primer - prime projects for blackening ... 🏴
+  primer - prime projects for blackening... 🏴
 
 Options:
   -c, --config PATH      JSON config file path  [default: /Users/cooper/repos/
@@ -1184,7 +1185,7 @@ Options:
 
 ### primer config file
 
-The config is `JSON` format. It's main element is the `"projects"` dictionary. Below
+The config is JSON format. Its main element is the `"projects"` dictionary. Below
 explains each parameter:
 
 ```json
@@ -1212,17 +1213,17 @@ explains each parameter:
 
 ```console
 cooper-mbp:black cooper$ ~/venvs/b/bin/black-primer
-[2020-05-17 13:06:40,830] INFO: 4 projects to run black over (lib.py:270)
+[2020-05-17 13:06:40,830] INFO: 4 projects to run Black over (lib.py:270)
 [2020-05-17 13:06:44,215] INFO: Analyzing results (lib.py:285)
 -- primer results 📊 --
 
 3 / 4 succeeded (75.0%) ✅
 1 / 4 FAILED (25.0%) 💩
- - 0 projects Disabled by config
- - 0 projects skipped due to Python Version
+ - 0 projects disabled by config
+ - 0 projects skipped due to Python version
  - 0 skipped due to long checkout
 
-Failed Projects:
+Failed projects:
 
 ## flake8-bugbear:
  - Returned 1

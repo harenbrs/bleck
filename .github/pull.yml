@@ -1,0 +1,8 @@
+version: "1"
+rules:
+  - base: master
+    upstream: psf:master
+    mergeMethod: merge
+    mergeUnstable: false
+label: ":arrow_heading_down: pull"
+

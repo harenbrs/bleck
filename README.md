@@ -154,7 +154,7 @@ Options:
                                   --exclude=.
 
   --version                       Show the version and exit.
-  --config FILE                   Read configuration from PATH.
+  --config FILE                   Read configuration from FILE path.
   -h, --help                      Show this message and exit.
 ```
 

@@ -6466,7 +6466,7 @@ def fix_docstring(docstring: str, prefix: str) -> str:
             if stripped_line or i == last_line_idx:
                 trimmed.append(prefix + stripped_line)
             else:
-                trimmed.append("")
+                trimmed.append(" " * indent)
     # Return a single string:
     return "\n".join(trimmed)
 

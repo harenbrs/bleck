@@ -1,3 +1,5 @@
+*Forked from <https://github.com/psf/black>. An excellent project, but I wanted to implement some particular changes.*
+
 ## Differences compared to upstream
 
 - Empty lines gain/retain indentation according to context
@@ -7,7 +9,7 @@
 - Trailing commas are not automatically added to data literals
 - String normalisation is always skipped
 
-Original readme below:
+*Original readme below:*
 
 ![Black Logo](https://raw.githubusercontent.com/psf/black/master/docs/_static/logo2-readme.png)
 

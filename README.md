@@ -306,7 +306,7 @@ the equivalent of r-strings in Python. Multiline strings are treated as verbose 
 expressions by Black. Use `[ ]` to denote a significant space character.
 
 <details>
-<summary>Example `pyproject.toml`</summary>
+<summary>Example <code>pyproject.toml</code></summary>
 
 ```toml
 [tool.black]
@@ -477,7 +477,7 @@ Twisted and CPython:
 
 Use the badge in your project's README.md:
 
-```markdown
+```md
 [![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
 ```
 
@@ -561,6 +561,7 @@ Multiple contributions by:
 - [Christian Clauss](mailto:cclauss@bluewin.ch)
 - [Christian Heimes](mailto:christian@python.org)
 - [Chuck Wooters](mailto:chuck.wooters@microsoft.com)
+- [Chris Rose](mailto:offline@offby1.net)
 - Codey Oxley
 - [Cong](mailto:congusbongus@gmail.com)
 - [Cooper Ry Lees](mailto:me@cooperlees.com)
@@ -637,7 +638,7 @@ Multiple contributions by:
 - [Miroslav Shubernetskiy](mailto:miroslav@miki725.com)
 - MomIsBestFriend
 - [Nathan Goldbaum](mailto:ngoldbau@illinois.edu)
-- [Nathan Hunt](mailtoneighthan.hunt@gmail.com)
+- [Nathan Hunt](mailto:neighthan.hunt@gmail.com)
 - [Neraste](mailto:neraste.herr10@gmail.com)
 - [Nikolaus Waxweiler](mailto:madigens@gmail.com)
 - [Ofek Lev](mailto:ofekmeister@gmail.com)
@@ -696,3 +697,4 @@ Multiple contributions by:
 - Yazdan
 - [Yngve Høiseth](mailto:yngve@hoiseth.net)
 - [Yurii Karabas](mailto:1998uriyyo@gmail.com)
+- [Zac Hatfield-Dodds](mailto:zac@zhd.dev)

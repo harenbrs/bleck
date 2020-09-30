@@ -310,6 +310,49 @@ class Step(StepBase):
             passenger_association=passenger_association,
         )
 
+xxxxxxx_xxxxxx_xxxxxxx = xxx(
+    [
+        xxxxxxxxxxxx(
+            xxxxxx_xxxxxxx=(
+                '((x.aaaaaaaaa = "xxxxxx.xxxxxxxxxxxxxxxxxxxxx") || (x.xxxxxxxxx = "xxxxxxxxxxxx")) && '
+                # xxxxx xxxxxxxxxxxx xxxx xxx (xxxxxxxxxxxxxxxx) xx x xxxxxxxxx xx xxxxxx.
+                "(x.bbbbbbbbbbbb.xxx != "
+                '"xxx:xxx:xxx::cccccccccccc:xxxxxxx-xxxx/xxxxxxxxxxx/xxxxxxxxxxxxxxxxx") && '
+            )
+        )
+    ]
+)
+
+if __name__ == "__main__":
+    for i in range(4, 8):
+        cmd = (
+            r"for pid in $(ps aux | grep paster | grep -v grep | grep '\-%d' | awk '{print $2}'); do kill $pid; done"
+            % (i)
+        )
+
+def A():
+    def B():
+        def C():
+            def D():
+                def E():
+                    def F():
+                        def G():
+                            assert (
+                                c_float(val[0][0] / val[0][1]).value
+                                == c_float(value[0][0] / value[0][1]).value
+                            ), "%s didn't roundtrip" % tag
+
+class xxxxxxxxxxxxxxxxxxxxx(xxxx.xxxxxxxxxxxxx):
+    def xxxxxxx_xxxxxx(xxxx):
+        assert xxxxxxx_xxxx in [
+            x.xxxxx.xxxxxx.xxxxx.xxxxxx,
+            x.xxxxx.xxxxxx.xxxxx.xxxx,
+        ], ("xxxxxxxxxxx xxxxxxx xxxx (xxxxxx xxxx) %x xxx xxxxx" % xxxxxxx_xxxx)
+
+value.__dict__[
+    key
+] = "test"  # set some Thrift field to non-None in the struct aa bb cc dd ee
+
 # output
 
 
@@ -435,14 +478,12 @@ func_call_where_string_arg_has_method_call_and_bad_parens(
 
 func_call_where_string_arg_has_old_fmt_and_bad_parens(
     "A long string with {}. This string is so long that it is ridiculous. It can't fit"
-    " on one line at alllll."
-    % "formatting",
+    " on one line at alllll." % "formatting",
 )
 
 func_call_where_string_arg_has_old_fmt_and_bad_parens(
     "A long string with {}. This {} is so long that it is ridiculous. It can't fit on"
-    " one line at alllll."
-    % ("formatting", "string"),
+    " one line at alllll." % ("formatting", "string"),
 )
 
 
@@ -702,3 +743,53 @@ class Step(StepBase):
                 passenger_association=passenger_association,
             )
         )
+
+
+xxxxxxx_xxxxxx_xxxxxxx = xxx(
+    [
+        xxxxxxxxxxxx(
+            xxxxxx_xxxxxxx=(
+                '((x.aaaaaaaaa = "xxxxxx.xxxxxxxxxxxxxxxxxxxxx") || (x.xxxxxxxxx ='
+                ' "xxxxxxxxxxxx")) && '
+                # xxxxx xxxxxxxxxxxx xxxx xxx (xxxxxxxxxxxxxxxx) xx x xxxxxxxxx xx xxxxxx.
+                "(x.bbbbbbbbbbbb.xxx != "
+                '"xxx:xxx:xxx::cccccccccccc:xxxxxxx-xxxx/xxxxxxxxxxx/xxxxxxxxxxxxxxxxx") && '
+            )
+        )
+    ]
+)
+
+if __name__ == "__main__":
+    for i in range(4, 8):
+        cmd = (
+            r"for pid in $(ps aux | grep paster | grep -v grep | grep '\-%d' | awk"
+            r" '{print $2}'); do kill $pid; done" % (i)
+        )
+
+
+def A():
+    def B():
+        def C():
+            def D():
+                def E():
+                    def F():
+                        def G():
+                            assert (
+                                c_float(val[0][0] / val[0][1]).value
+                                == c_float(value[0][0] / value[0][1]).value
+                            ), "%s didn't roundtrip" % tag
+
+
+class xxxxxxxxxxxxxxxxxxxxx(xxxx.xxxxxxxxxxxxx):
+    def xxxxxxx_xxxxxx(xxxx):
+        assert xxxxxxx_xxxx in [
+            x.xxxxx.xxxxxx.xxxxx.xxxxxx,
+            x.xxxxx.xxxxxx.xxxxx.xxxx,
+        ], (
+            "xxxxxxxxxxx xxxxxxx xxxx (xxxxxx xxxx) %x xxx xxxxx" % xxxxxxx_xxxx
+        )
+
+
+value.__dict__[
+    key
+] = "test"  # set some Thrift field to non-None in the struct aa bb cc dd ee

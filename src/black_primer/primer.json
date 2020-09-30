@@ -10,7 +10,7 @@
     },
     "attrs": {
       "cli_arguments": [],
-      "expect_formatting_changes": true,
+      "expect_formatting_changes": false,
       "git_clone_url": "https://github.com/python-attrs/attrs.git",
       "long_checkout": false,
       "py_versions": ["all"]
@@ -47,7 +47,7 @@
     },
     "hypothesis": {
       "cli_arguments": [],
-      "expect_formatting_changes": true,
+      "expect_formatting_changes": false,
       "git_clone_url": "https://github.com/HypothesisWorks/hypothesis.git",
       "long_checkout": false,
       "py_versions": ["all"]
@@ -58,6 +58,13 @@
       "cli_arguments": [],
       "expect_formatting_changes": true,
       "git_clone_url": "https://github.com/pandas-dev/pandas.git",
+      "long_checkout": false,
+      "py_versions": ["all"]
+    },
+    "pillow": {
+      "cli_arguments": [],
+      "expect_formatting_changes": false,
+      "git_clone_url": "https://github.com/python-pillow/Pillow.git",
       "long_checkout": false,
       "py_versions": ["all"]
     },
@@ -98,14 +105,14 @@
     },
     "tox": {
       "cli_arguments": [],
-      "expect_formatting_changes": true,
+      "expect_formatting_changes": false,
       "git_clone_url": "https://github.com/tox-dev/tox.git",
       "long_checkout": false,
       "py_versions": ["all"]
     },
     "virtualenv": {
       "cli_arguments": [],
-      "expect_formatting_changes": true,
+      "expect_formatting_changes": false,
       "git_clone_url": "https://github.com/pypa/virtualenv.git",
       "long_checkout": false,
       "py_versions": ["all"]

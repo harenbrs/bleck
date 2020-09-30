@@ -4,6 +4,34 @@
 
 #### _Black_
 
+- `Black` now respects `--skip-string-normalization` when normalizing multiline
+  docstring quotes (#1637)
+
+- `Black` no longer removes all empty lines between non-function code and decorators
+  when formatting typing stubs. Now `Black` enforces a single empty line. (#1646)
+
+- `Black` no longer adds an incorrect space after a parenthesized assignment expression
+  in if/while statements (#1655)
+
+- fixed a crash when PWD=/ on POSIX (#1631)
+
+- fixed "I/O operation on closed file" when using --diff (#1664)
+
+- Prevent coloured diff output being interleaved with multiple files (#1673)
+
+- Added support for PEP 614 relaxed decorator syntax on python 3.9 (#1711)
+
+### 20.8b1
+
+#### _Packaging_
+
+- explicitly depend on Click 7.1.2 or newer as `Black` no longer works with versions
+  older than 7.0
+
+### 20.8b0
+
+#### _Black_
+
 - re-implemented support for explicit trailing commas: now it works consistently within
   any bracket pair, including nested structures (#1288 and duplicates)
 

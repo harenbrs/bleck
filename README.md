@@ -99,7 +99,7 @@ Options:
   -l, --line-length INTEGER       How many characters per line to allow.
                                   [default: 88]
 
-  -t, --target-version [py27|py33|py34|py35|py36|py37|py38]
+  -t, --target-version [py27|py33|py34|py35|py36|py37|py38|py39]
                                   Python versions that should be supported by
                                   Black's output. [default: per-file auto-
                                   detection]
@@ -225,12 +225,13 @@ know!)
 
 ### NOTE: This is a beta product
 
-_Black_ is already [successfully used](#used-by) by many projects, small and big. It
-also sports a decent test suite. However, it is still very new. Things will probably be
-wonky for a while. This is made explicit by the "Beta" trove classifier, as well as by
-the "b" in the version number. What this means for you is that **until the formatter
-becomes stable, you should expect some formatting to change in the future**. That being
-said, no drastic stylistic changes are planned, mostly responses to bug reports.
+_Black_ is already [successfully used](https://github.com/psf/black#used-by) by many
+projects, small and big. It also sports a decent test suite. However, it is still very
+new. Things will probably be wonky for a while. This is made explicit by the "Beta"
+trove classifier, as well as by the "b" in the version number. What this means for you
+is that **until the formatter becomes stable, you should expect some formatting to
+change in the future**. That being said, no drastic stylistic changes are planned,
+mostly responses to bug reports.
 
 Also, as a temporary safety measure, _Black_ will check that the reformatted code still
 produces a valid AST that is equivalent to the original. This slows it down. If you're

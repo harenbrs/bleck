@@ -986,7 +986,7 @@ def format_str(src_contents: str, *, mode: Mode) -> FileContent:
     allowed.  Example:
 
     >>> import black
-    >>> print(black.format_str("def f(arg:str='')->None:...", mode=Mode()))
+    >>> print(black.format_str("def f(arg:str='')->None:...", mode=black.Mode()))
     def f(arg: str = "") -> None:
         ...
 
@@ -3288,7 +3288,8 @@ class StringParenStripper(StringTransformer):
 
     Requirements:
         The line contains a string which is surrounded by parentheses and:
-            - The target string is NOT the only argument to a function call).
+            - The target string is NOT the only argument to a function call.
+            - The target string is NOT a "pointless" string.
             - If the target string contains a PERCENT, the brackets are not
               preceeded or followed by an operator with higher precedence than
               PERCENT.
@@ -3310,6 +3311,14 @@ class StringParenStripper(StringTransformer):
         for (idx, leaf) in enumerate(LL):
             # Should be a string...
             if leaf.type != token.STRING:
+                continue
+
+            # If this is a "pointless" string...
+            if (
+                leaf.parent
+                and leaf.parent.parent
+                and leaf.parent.parent.type == syms.simple_stmt
+            ):
                 continue
 
             # Should be preceded by a non-empty LPAR...

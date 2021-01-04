@@ -100,9 +100,9 @@ setup(
     ],
     entry_points={
         "console_scripts": [
-            "black=black:patched_main",
-            "blackd=blackd:patched_main [d]",
-            "black-primer=black_primer.cli:main",
+            "bleck=black:patched_main",
+            "bleckd=blackd:patched_main [d]",
+            "bleck-primer=black_primer.cli:main",
         ]
     },
 )

@@ -26,6 +26,15 @@
 
 - use lowercase hex strings (#1692)
 
+- speed up caching by avoiding pathlib (#1950)
+
+- `--diff` correctly indicates when a file doesn't end in a newline (#1662)
+
+- Added `--stdin-filename` argument to allow stdin to respect `--force-exclude` rules
+  (#1780)
+
+- Lines ending with `fmt: skip` will now be not formatted (#1800)
+
 #### _Packaging_
 
 - Self-contained native _Black_ binaries are now provided for releases via GitHub

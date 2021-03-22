@@ -52,6 +52,10 @@ Options:
 
   -S, --skip-string-normalization
                                   Don't normalize string quotes or prefixes.
+  -C, --skip-magic-trailing-comma
+                                  Don't use trailing commas as a reason to
+                                  split lines.
+
   --check                         Don't write the files back, just return the
                                   status.  Return code 0 means nothing would
                                   change.  Return code 1 means some files
@@ -82,18 +86,24 @@ Options:
                                   paths are excluded. Use forward slashes for
                                   directories on all platforms (Windows, too).
                                   Exclusions are calculated first, inclusions
-                                  later.  [default: /(\.eggs|\.git|\.hg|\.mypy
-                                  _cache|\.nox|\.tox|\.venv|\.svn|_build|buck-
-                                  out|build|dist)/]
+                                  later.  [default: /(\.direnv|\.eggs|\.git|\.
+                                  hg|\.mypy_cache|\.nox|\.tox|\.venv|\.svn|_bu
+                                  ild|buck-out|build|dist)/]
 
   --force-exclude TEXT            Like --exclude, but files and directories
                                   matching this regex will be excluded even
-                                  when they are passed explicitly as arguments.
+                                  when they are passed explicitly as
+                                  arguments.
+
+  --extend-exclude TEXT           Like --exclude, but adds additional files
+                                  and directories on top of the excluded
+                                  ones. (useful if you simply want to add to
+                                  the default)
 
   --stdin-filename TEXT           The name of the file when passing it through
-                                  stdin. Useful to make sure Black will respect
-                                  --force-exclude option on some editors that
-                                  rely on using stdin.
+                                  stdin. Useful to make sure Black will
+                                  respect --force-exclude option on some
+                                  editors that rely on using stdin.
 
   -q, --quiet                     Don't emit non-error messages to stderr.
                                   Errors are still emitted; silence those with
@@ -101,7 +111,7 @@ Options:
 
   -v, --verbose                   Also emit messages to stderr about files
                                   that were not changed or were ignored due to
-                                  --exclude=.
+                                  exclusion patterns.
 
   --version                       Show the version and exit.
   --config FILE                   Read configuration from FILE path.

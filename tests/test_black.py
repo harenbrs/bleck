@@ -263,6 +263,15 @@ class BlackTestCase(BlackBaseTestCase):
         if sys.version_info >= (3, 8):
             black.assert_equivalent(source, actual)
 
+    @patch("black.dump_to_file", dump_to_stderr)
+    def test_pep_572_remove_parens(self) -> None:
+        source, expected = read_data("pep_572_remove_parens")
+        actual = fs(source)
+        self.assertFormatEqual(expected, actual)
+        black.assert_stable(source, actual, DEFAULT_MODE)
+        if sys.version_info >= (3, 8):
+            black.assert_equivalent(source, actual)
+
     def test_pep_572_version_detection(self) -> None:
         source, _ = read_data("pep_572")
         root = black.lib2to3_parse(source)
@@ -300,7 +309,6 @@ class BlackTestCase(BlackBaseTestCase):
             os.unlink(tmp_file)
         actual = result.output
         actual = diff_header.sub(DETERMINISTIC_HEADER, actual)
-        actual = actual.rstrip() + "\n"  # the diff output has a trailing space
         if expected != actual:
             dump = black.dump_to_file(actual)
             msg = (
@@ -394,6 +402,31 @@ class BlackTestCase(BlackBaseTestCase):
         self.assertFormatEqual(expected, actual)
         black.assert_equivalent(source, actual)
         black.assert_stable(source, actual, mode)
+
+    def test_skip_magic_trailing_comma(self) -> None:
+        source, _ = read_data("expression.py")
+        expected, _ = read_data("expression_skip_magic_trailing_comma.diff")
+        tmp_file = Path(black.dump_to_file(source))
+        diff_header = re.compile(
+            rf"{re.escape(str(tmp_file))}\t\d\d\d\d-\d\d-\d\d "
+            r"\d\d:\d\d:\d\d\.\d\d\d\d\d\d \+\d\d\d\d"
+        )
+        try:
+            result = BlackRunner().invoke(black.main, ["-C", "--diff", str(tmp_file)])
+            self.assertEqual(result.exit_code, 0)
+        finally:
+            os.unlink(tmp_file)
+        actual = result.output
+        actual = diff_header.sub(DETERMINISTIC_HEADER, actual)
+        actual = actual.rstrip() + "\n"  # the diff output has a trailing space
+        if expected != actual:
+            dump = black.dump_to_file(actual)
+            msg = (
+                "Expected diff isn't equal to the actual. If you made changes to"
+                " expression.py and this is an anticipated difference, overwrite"
+                f" tests/data/expression_skip_magic_trailing_comma.diff with {dump}"
+            )
+            self.assertEqual(expected, actual, msg)
 
     @patch("black.dump_to_file", dump_to_stderr)
     def test_python2_print_function(self) -> None:
@@ -978,7 +1011,7 @@ class BlackTestCase(BlackBaseTestCase):
                 fobj.write("print('hello')")
             self.invokeBlack([str(src)])
             cache = black.read_cache(mode)
-            self.assertIn(src, cache)
+            self.assertIn(str(src), cache)
 
     def test_cache_single_file_already_cached(self) -> None:
         mode = DEFAULT_MODE
@@ -1010,8 +1043,8 @@ class BlackTestCase(BlackBaseTestCase):
             with two.open("r") as fobj:
                 self.assertEqual(fobj.read(), 'print("hello")\n')
             cache = black.read_cache(mode)
-            self.assertIn(one, cache)
-            self.assertIn(two, cache)
+            self.assertIn(str(one), cache)
+            self.assertIn(str(two), cache)
 
     def test_no_cache_when_writeback_diff(self) -> None:
         mode = DEFAULT_MODE
@@ -1091,8 +1124,8 @@ class BlackTestCase(BlackBaseTestCase):
             src.touch()
             black.write_cache({}, [src], mode)
             cache = black.read_cache(mode)
-            self.assertIn(src, cache)
-            self.assertEqual(cache[src], black.get_cache_info(src))
+            self.assertIn(str(src), cache)
+            self.assertEqual(cache[str(src)], black.get_cache_info(src))
 
     def test_filter_cached(self) -> None:
         with TemporaryDirectory() as workspace:
@@ -1103,7 +1136,10 @@ class BlackTestCase(BlackBaseTestCase):
             uncached.touch()
             cached.touch()
             cached_but_changed.touch()
-            cache = {cached: black.get_cache_info(cached), cached_but_changed: (0.0, 0)}
+            cache = {
+                str(cached): black.get_cache_info(cached),
+                str(cached_but_changed): (0.0, 0),
+            }
             todo, done = black.filter_cached(
                 cache, {uncached, cached, cached_but_changed}
             )
@@ -1131,8 +1167,8 @@ class BlackTestCase(BlackBaseTestCase):
                 fobj.write('print("hello")\n')
             self.invokeBlack([str(workspace)], exit_code=123)
             cache = black.read_cache(mode)
-            self.assertNotIn(failing, cache)
-            self.assertIn(clean, cache)
+            self.assertNotIn(str(failing), cache)
+            self.assertIn(str(clean), cache)
 
     def test_write_cache_write_fail(self) -> None:
         mode = DEFAULT_MODE
@@ -1185,9 +1221,9 @@ class BlackTestCase(BlackBaseTestCase):
             path.touch()
             black.write_cache({}, [path], mode)
             one = black.read_cache(mode)
-            self.assertIn(path, one)
+            self.assertIn(str(path), one)
             two = black.read_cache(short_mode)
-            self.assertNotIn(path, two)
+            self.assertNotIn(str(path), two)
 
     def test_single_file_force_pyi(self) -> None:
         pyi_mode = replace(DEFAULT_MODE, is_pyi=True)
@@ -1201,9 +1237,9 @@ class BlackTestCase(BlackBaseTestCase):
                 actual = fh.read()
             # verify cache with --pyi is separate
             pyi_cache = black.read_cache(pyi_mode)
-            self.assertIn(path, pyi_cache)
+            self.assertIn(str(path), pyi_cache)
             normal_cache = black.read_cache(DEFAULT_MODE)
-            self.assertNotIn(path, normal_cache)
+            self.assertNotIn(str(path), normal_cache)
         self.assertFormatEqual(expected, actual)
         black.assert_equivalent(contents, actual)
         black.assert_stable(contents, actual, pyi_mode)
@@ -1230,8 +1266,8 @@ class BlackTestCase(BlackBaseTestCase):
             pyi_cache = black.read_cache(pyi_mode)
             normal_cache = black.read_cache(reg_mode)
             for path in paths:
-                self.assertIn(path, pyi_cache)
-                self.assertNotIn(path, normal_cache)
+                self.assertIn(str(path), pyi_cache)
+                self.assertNotIn(str(path), normal_cache)
 
     def test_pipe_force_pyi(self) -> None:
         source, expected = read_data("force_pyi")
@@ -1255,9 +1291,9 @@ class BlackTestCase(BlackBaseTestCase):
                 actual = fh.read()
             # verify cache with --target-version is separate
             py36_cache = black.read_cache(py36_mode)
-            self.assertIn(path, py36_cache)
+            self.assertIn(str(path), py36_cache)
             normal_cache = black.read_cache(reg_mode)
-            self.assertNotIn(path, normal_cache)
+            self.assertNotIn(str(path), normal_cache)
         self.assertEqual(actual, expected)
 
     @event_loop()
@@ -1282,8 +1318,8 @@ class BlackTestCase(BlackBaseTestCase):
             pyi_cache = black.read_cache(py36_mode)
             normal_cache = black.read_cache(reg_mode)
             for path in paths:
-                self.assertIn(path, pyi_cache)
-                self.assertNotIn(path, normal_cache)
+                self.assertIn(str(path), pyi_cache)
+                self.assertNotIn(str(path), normal_cache)
 
     def test_pipe_force_py36(self) -> None:
         source, expected = read_data("force_py36")
@@ -1310,7 +1346,14 @@ class BlackTestCase(BlackBaseTestCase):
         this_abs = THIS_DIR.resolve()
         sources.extend(
             black.gen_python_files(
-                path.iterdir(), this_abs, include, exclude, None, report, gitignore
+                path.iterdir(),
+                this_abs,
+                include,
+                exclude,
+                None,
+                None,
+                report,
+                gitignore,
             )
         )
         self.assertEqual(sorted(expected), sorted(sources))
@@ -1332,8 +1375,9 @@ class BlackTestCase(BlackBaseTestCase):
                 src=(src,),
                 quiet=True,
                 verbose=False,
-                include=include,
-                exclude=exclude,
+                include=re.compile(include),
+                exclude=re.compile(exclude),
+                extend_exclude=None,
                 force_exclude=None,
                 report=report,
                 stdin_filename=None,
@@ -1354,8 +1398,9 @@ class BlackTestCase(BlackBaseTestCase):
                 src=(src,),
                 quiet=True,
                 verbose=False,
-                include=include,
-                exclude=exclude,
+                include=re.compile(include),
+                exclude=re.compile(exclude),
+                extend_exclude=None,
                 force_exclude=None,
                 report=report,
                 stdin_filename=None,
@@ -1377,8 +1422,9 @@ class BlackTestCase(BlackBaseTestCase):
                 src=(src,),
                 quiet=True,
                 verbose=False,
-                include=include,
-                exclude=exclude,
+                include=re.compile(include),
+                exclude=re.compile(exclude),
+                extend_exclude=None,
                 force_exclude=None,
                 report=report,
                 stdin_filename=stdin_filename,
@@ -1404,8 +1450,37 @@ class BlackTestCase(BlackBaseTestCase):
                 src=(src,),
                 quiet=True,
                 verbose=False,
-                include=include,
-                exclude=exclude,
+                include=re.compile(include),
+                exclude=re.compile(exclude),
+                extend_exclude=None,
+                force_exclude=None,
+                report=report,
+                stdin_filename=stdin_filename,
+            )
+        )
+        self.assertEqual(sorted(expected), sorted(sources))
+
+    @patch("black.find_project_root", lambda *args: THIS_DIR.resolve())
+    def test_get_sources_with_stdin_filename_and_extend_exclude(self) -> None:
+        # Extend exclude shouldn't exclude stdin_filename since it is mimicking the
+        # file being passed directly. This is the same as
+        # test_exclude_for_issue_1572
+        path = THIS_DIR / "data" / "include_exclude_tests"
+        include = ""
+        extend_exclude = r"/exclude/|a\.py"
+        src = "-"
+        report = black.Report()
+        stdin_filename = str(path / "b/exclude/a.py")
+        expected = [Path(f"__BLACK_STDIN_FILENAME__{stdin_filename}")]
+        sources = list(
+            black.get_sources(
+                ctx=FakeContext(),
+                src=(src,),
+                quiet=True,
+                verbose=False,
+                include=re.compile(include),
+                exclude=re.compile(""),
+                extend_exclude=re.compile(extend_exclude),
                 force_exclude=None,
                 report=report,
                 stdin_filename=stdin_filename,
@@ -1429,9 +1504,10 @@ class BlackTestCase(BlackBaseTestCase):
                 src=(src,),
                 quiet=True,
                 verbose=False,
-                include=include,
-                exclude="",
-                force_exclude=force_exclude,
+                include=re.compile(include),
+                exclude=re.compile(""),
+                extend_exclude=None,
+                force_exclude=re.compile(force_exclude),
                 report=report,
                 stdin_filename=stdin_filename,
             )
@@ -1515,7 +1591,14 @@ class BlackTestCase(BlackBaseTestCase):
         this_abs = THIS_DIR.resolve()
         sources.extend(
             black.gen_python_files(
-                path.iterdir(), this_abs, include, exclude, None, report, gitignore
+                path.iterdir(),
+                this_abs,
+                include,
+                exclude,
+                None,
+                None,
+                report,
+                gitignore,
             )
         )
         self.assertEqual(sorted(expected), sorted(sources))
@@ -1545,33 +1628,6 @@ class BlackTestCase(BlackBaseTestCase):
                 empty,
                 re.compile(black.DEFAULT_EXCLUDES),
                 None,
-                report,
-                gitignore,
-            )
-        )
-        self.assertEqual(sorted(expected), sorted(sources))
-
-    def test_empty_exclude(self) -> None:
-        path = THIS_DIR / "data" / "include_exclude_tests"
-        report = black.Report()
-        gitignore = PathSpec.from_lines("gitwildmatch", [])
-        empty = re.compile(r"")
-        sources: List[Path] = []
-        expected = [
-            Path(path / "b/dont_exclude/a.py"),
-            Path(path / "b/dont_exclude/a.pyi"),
-            Path(path / "b/exclude/a.py"),
-            Path(path / "b/exclude/a.pyi"),
-            Path(path / "b/.definitely_exclude/a.py"),
-            Path(path / "b/.definitely_exclude/a.pyi"),
-        ]
-        this_abs = THIS_DIR.resolve()
-        sources.extend(
-            black.gen_python_files(
-                path.iterdir(),
-                this_abs,
-                re.compile(black.DEFAULT_INCLUDES),
-                empty,
                 None,
                 report,
                 gitignore,
@@ -1579,8 +1635,32 @@ class BlackTestCase(BlackBaseTestCase):
         )
         self.assertEqual(sorted(expected), sorted(sources))
 
-    def test_invalid_include_exclude(self) -> None:
-        for option in ["--include", "--exclude"]:
+    def test_extend_exclude(self) -> None:
+        path = THIS_DIR / "data" / "include_exclude_tests"
+        report = black.Report()
+        gitignore = PathSpec.from_lines("gitwildmatch", [])
+        sources: List[Path] = []
+        expected = [
+            Path(path / "b/exclude/a.py"),
+            Path(path / "b/dont_exclude/a.py"),
+        ]
+        this_abs = THIS_DIR.resolve()
+        sources.extend(
+            black.gen_python_files(
+                path.iterdir(),
+                this_abs,
+                re.compile(black.DEFAULT_INCLUDES),
+                re.compile(r"\.pyi$"),
+                re.compile(r"\.definitely_exclude"),
+                None,
+                report,
+                gitignore,
+            )
+        )
+        self.assertEqual(sorted(expected), sorted(sources))
+
+    def test_invalid_cli_regex(self) -> None:
+        for option in ["--include", "--exclude", "--extend-exclude", "--force-exclude"]:
             self.invokeBlack(["-", option, "**()(!!*)"], exit_code=2)
 
     def test_preserves_line_endings(self) -> None:
@@ -1629,7 +1709,14 @@ class BlackTestCase(BlackBaseTestCase):
         try:
             list(
                 black.gen_python_files(
-                    path.iterdir(), root, include, exclude, None, report, gitignore
+                    path.iterdir(),
+                    root,
+                    include,
+                    exclude,
+                    None,
+                    None,
+                    report,
+                    gitignore,
                 )
             )
         except ValueError as ve:
@@ -1643,7 +1730,14 @@ class BlackTestCase(BlackBaseTestCase):
         with self.assertRaises(ValueError):
             list(
                 black.gen_python_files(
-                    path.iterdir(), root, include, exclude, None, report, gitignore
+                    path.iterdir(),
+                    root,
+                    include,
+                    exclude,
+                    None,
+                    None,
+                    report,
+                    gitignore,
                 )
             )
         path.iterdir.assert_called()
@@ -1764,6 +1858,33 @@ class BlackTestCase(BlackBaseTestCase):
             self.assertEqual(normalized_path, "workspace/project")
         finally:
             os.chdir(str(old_cwd))
+
+    def test_newline_comment_interaction(self) -> None:
+        source = "class A:\\\r\n# type: ignore\n pass\n"
+        output = black.format_str(source, mode=DEFAULT_MODE)
+        black.assert_stable(source, output, mode=DEFAULT_MODE)
+
+    def test_bpo_2142_workaround(self) -> None:
+
+        # https://bugs.python.org/issue2142
+
+        source, _ = read_data("missing_final_newline.py")
+        # read_data adds a trailing newline
+        source = source.rstrip()
+        expected, _ = read_data("missing_final_newline.diff")
+        tmp_file = Path(black.dump_to_file(source, ensure_final_newline=False))
+        diff_header = re.compile(
+            rf"{re.escape(str(tmp_file))}\t\d\d\d\d-\d\d-\d\d "
+            r"\d\d:\d\d:\d\d\.\d\d\d\d\d\d \+\d\d\d\d"
+        )
+        try:
+            result = BlackRunner().invoke(black.main, ["--diff", str(tmp_file)])
+            self.assertEqual(result.exit_code, 0)
+        finally:
+            os.unlink(tmp_file)
+        actual = result.output
+        actual = diff_header.sub(DETERMINISTIC_HEADER, actual)
+        self.assertEqual(actual, expected)
 
 
 with open(black.__file__, "r", encoding="utf-8") as _bf:

@@ -62,7 +62,7 @@ _Contents:_ **[Installation and usage](#installation-and-usage)** |
 
 ### Installation
 
-_Black_ can be installed by running `pip install black`. It requires Python 3.6.0+ to
+_Black_ can be installed by running `pip install black`. It requires Python 3.6.2+ to
 run but you can reformat Python 2 code with it, too.
 
 #### Install from GitHub
@@ -110,6 +110,10 @@ Options:
 
   -S, --skip-string-normalization
                                   Don't normalize string quotes or prefixes.
+  -C, --skip-magic-trailing-comma
+                                  Don't use trailing commas as a reason to
+                                  split lines.
+
   --check                         Don't write the files back, just return the
                                   status.  Return code 0 means nothing would
                                   change.  Return code 1 means some files
@@ -140,18 +144,25 @@ Options:
                                   paths are excluded. Use forward slashes for
                                   directories on all platforms (Windows, too).
                                   Exclusions are calculated first, inclusions
-                                  later.  [default: /(\.eggs|\.git|\.hg|\.mypy
-                                  _cache|\.nox|\.tox|\.venv|\.svn|_build|buck-
-                                  out|build|dist)/]
+                                  later.  [default: /(\.direnv|\.eggs|\.git|\.
+                                  hg|\.mypy_cache|\.nox|\.tox|\.venv|\.svn|_bu
+                                  ild|buck-out|build|dist)/]
+
+  --extend-exclude TEXT           Like --exclude, but adds additional files
+                                  and directories on top of the excluded
+                                  ones (useful if you simply want to add to
+                                  the default).
 
   --force-exclude TEXT            Like --exclude, but files and directories
                                   matching this regex will be excluded even
-                                  when they are passed explicitly as arguments.
+                                  when they are passed explicitly as
+                                  arguments.
+
 
   --stdin-filename TEXT           The name of the file when passing it through
-                                  stdin. Useful to make sure Black will respect
-                                  --force-exclude option on some editors that
-                                  rely on using stdin.
+                                  stdin. Useful to make sure Black will
+                                  respect --force-exclude option on some
+                                  editors that rely on using stdin.
 
   -q, --quiet                     Don't emit non-error messages to stderr.
                                   Errors are still emitted; silence those with
@@ -159,7 +170,7 @@ Options:
 
   -v, --verbose                   Also emit messages to stderr about files
                                   that were not changed or were ignored due to
-                                  --exclude=.
+                                  exclusion patterns.
 
   --version                       Show the version and exit.
   --config FILE                   Read configuration from FILE path.
@@ -247,8 +258,9 @@ feeling confident, use `--fast`.
 _Black_ is a PEP 8 compliant opinionated formatter. _Black_ reformats entire files in
 place. It is not configurable. It doesn't take previous formatting into account. Your
 main option of configuring _Black_ is that it doesn't reformat blocks that start with
-`# fmt: off` and end with `# fmt: on`. `# fmt: on/off` have to be on the same level of
-indentation. To learn more about _Black_'s opinions, to go
+`# fmt: off` and end with `# fmt: on`, or lines that ends with `# fmt: skip`. Pay
+attention that `# fmt: on/off` have to be on the same level of indentation. To learn
+more about _Black_'s opinions, to go
 [the_black_code_style](https://github.com/psf/black/blob/master/docs/the_black_code_style.md).
 
 Please refer to this document before submitting an issue. What seems like a bug might be
@@ -270,7 +282,7 @@ above. What seems like a bug might be intended behaviour.
 
 _Black_ is able to read project-specific default values for its command line options
 from a `pyproject.toml` file. This is especially useful for specifying custom
-`--include` and `--exclude` patterns for your project.
+`--include` and `--exclude`/`--extend-exclude` patterns for your project.
 
 **Pro-tip**: If you're asking yourself "Do I need to configure anything?" the answer is
 "No". _Black_ is all about sensible defaults.
@@ -320,24 +332,10 @@ expressions by Black. Use `[ ]` to denote a significant space character.
 line-length = 88
 target-version = ['py37']
 include = '\.pyi?$'
-exclude = '''
-
-(
-  /(
-      \.eggs         # exclude a few common directories in the
-    | \.git          # root of the project
-    | \.hg
-    | \.mypy_cache
-    | \.tox
-    | \.venv
-    | _build
-    | buck-out
-    | build
-    | dist
-  )/
-  | foo.py           # also separately exclude a file named foo.py in
-                     # the root of the project
-)
+extend-exclude = '''
+# A regex preceded with ^/ will apply only to files and directories
+# in the root of the project.
+^/foo.py  # exclude a file named foo.py in the root of the project (in addition to the defaults)
 '''
 ```
 
@@ -425,7 +423,7 @@ jobs:
       - uses: actions/setup-python@v2
       - uses: psf/black@stable
         with:
-          black_args: ". --check"
+          args: ". --check"
 ```
 
 ### Inputs
@@ -461,7 +459,7 @@ then write the above files to `.cache/black/<version>/`.
 The following notable open-source projects trust _Black_ with enforcing a consistent
 code style: pytest, tox, Pyramid, Django Channels, Hypothesis, attrs, SQLAlchemy,
 Poetry, PyPA applications (Warehouse, Bandersnatch, Pipenv, virtualenv), pandas, Pillow,
-every Datadog Agent Integration, Home Assistant.
+every Datadog Agent Integration, Home Assistant, Zulip.
 
 The following organizations use _Black_: Facebook, Dropbox, Mozilla, Quora.
 
@@ -622,6 +620,7 @@ Multiple contributions by:
 - [Joseph Larson](mailto:larson.joseph@gmail.com)
 - [Josh Bode](mailto:joshbode@fastmail.com)
 - [Josh Holland](mailto:anowlcalledjosh@gmail.com)
+- [Joshua Cannon](mailto:joshdcannon@gmail.com)
 - [José Padilla](mailto:jpadilla@webapplicate.com)
 - [Juan Luis Cano Rodríguez](mailto:hello@juanlu.space)
 - [kaiix](mailto:kvn.hou@gmail.com)

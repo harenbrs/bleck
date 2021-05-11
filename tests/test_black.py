@@ -24,6 +24,7 @@ from typing import (
     Iterator,
     TypeVar,
 )
+import pytest
 import unittest
 from unittest.mock import patch, MagicMock
 
@@ -33,6 +34,10 @@ from click.testing import CliRunner
 
 import black
 from black import Feature, TargetVersion
+from black.cache import get_cache_file
+from black.debug import DebugVisitor
+from black.report import Report
+import black.files
 
 from pathspec import PathSpec
 
@@ -68,7 +73,7 @@ def cache_dir(exists: bool = True) -> Iterator[Path]:
         cache_dir = Path(workspace)
         if not exists:
             cache_dir = cache_dir / "new"
-        with patch("black.CACHE_DIR", cache_dir):
+        with patch("black.cache.CACHE_DIR", cache_dir):
             yield cache_dir
 
 
@@ -170,8 +175,9 @@ class BlackTestCase(BlackBaseTestCase):
         )
         self.assertEqual(result.exit_code, 0)
         self.assertFormatEqual(expected, result.output)
-        black.assert_equivalent(source, result.output)
-        black.assert_stable(source, result.output, DEFAULT_MODE)
+        if source != result.output:
+            black.assert_equivalent(source, result.output)
+            black.assert_stable(source, result.output, DEFAULT_MODE)
 
     def test_piping_diff(self) -> None:
         diff_header = re.compile(
@@ -255,6 +261,24 @@ class BlackTestCase(BlackBaseTestCase):
         black.assert_stable(source, actual, DEFAULT_MODE)
 
     @patch("black.dump_to_file", dump_to_stderr)
+    def test_trailing_comma_optional_parens_stability1_pass2(self) -> None:
+        source, _expected = read_data("trailing_comma_optional_parens1")
+        actual = fs(fs(source))  # this is what `format_file_contents` does with --safe
+        black.assert_stable(source, actual, DEFAULT_MODE)
+
+    @patch("black.dump_to_file", dump_to_stderr)
+    def test_trailing_comma_optional_parens_stability2_pass2(self) -> None:
+        source, _expected = read_data("trailing_comma_optional_parens2")
+        actual = fs(fs(source))  # this is what `format_file_contents` does with --safe
+        black.assert_stable(source, actual, DEFAULT_MODE)
+
+    @patch("black.dump_to_file", dump_to_stderr)
+    def test_trailing_comma_optional_parens_stability3_pass2(self) -> None:
+        source, _expected = read_data("trailing_comma_optional_parens3")
+        actual = fs(fs(source))  # this is what `format_file_contents` does with --safe
+        black.assert_stable(source, actual, DEFAULT_MODE)
+
+    @patch("black.dump_to_file", dump_to_stderr)
     def test_pep_572(self) -> None:
         source, expected = read_data("pep_572")
         actual = fs(source)
@@ -271,6 +295,14 @@ class BlackTestCase(BlackBaseTestCase):
         black.assert_stable(source, actual, DEFAULT_MODE)
         if sys.version_info >= (3, 8):
             black.assert_equivalent(source, actual)
+
+    @patch("black.dump_to_file", dump_to_stderr)
+    def test_pep_572_do_not_remove_parens(self) -> None:
+        source, expected = read_data("pep_572_do_not_remove_parens")
+        # the AST safety checks will fail, but that's expected, just make sure no
+        # parentheses are touched
+        actual = black.format_str(source, mode=DEFAULT_MODE)
+        self.assertFormatEqual(expected, actual)
 
     def test_pep_572_version_detection(self) -> None:
         source, _ = read_data("pep_572")
@@ -296,6 +328,7 @@ class BlackTestCase(BlackBaseTestCase):
 
     def test_expression_diff(self) -> None:
         source, _ = read_data("expression.py")
+        config = THIS_DIR / "data" / "empty_pyproject.toml"
         expected, _ = read_data("expression.diff")
         tmp_file = Path(black.dump_to_file(source))
         diff_header = re.compile(
@@ -303,7 +336,9 @@ class BlackTestCase(BlackBaseTestCase):
             r"\d\d:\d\d:\d\d\.\d\d\d\d\d\d \+\d\d\d\d"
         )
         try:
-            result = BlackRunner().invoke(black.main, ["--diff", str(tmp_file)])
+            result = BlackRunner().invoke(
+                black.main, ["--diff", str(tmp_file), f"--config={config}"]
+            )
             self.assertEqual(result.exit_code, 0)
         finally:
             os.unlink(tmp_file)
@@ -320,11 +355,12 @@ class BlackTestCase(BlackBaseTestCase):
 
     def test_expression_diff_with_color(self) -> None:
         source, _ = read_data("expression.py")
+        config = THIS_DIR / "data" / "empty_pyproject.toml"
         expected, _ = read_data("expression.diff")
         tmp_file = Path(black.dump_to_file(source))
         try:
             result = BlackRunner().invoke(
-                black.main, ["--diff", "--color", str(tmp_file)]
+                black.main, ["--diff", "--color", str(tmp_file), f"--config={config}"]
             )
         finally:
             os.unlink(tmp_file)
@@ -357,11 +393,12 @@ class BlackTestCase(BlackBaseTestCase):
     @patch("black.dump_to_file", dump_to_stderr)
     def test_string_quotes(self) -> None:
         source, expected = read_data("string_quotes")
-        actual = fs(source)
+        mode = black.Mode(experimental_string_processing=True)
+        actual = fs(source, mode=mode)
         self.assertFormatEqual(expected, actual)
         black.assert_equivalent(source, actual)
-        black.assert_stable(source, actual, DEFAULT_MODE)
-        mode = replace(DEFAULT_MODE, string_normalization=False)
+        black.assert_stable(source, actual, mode)
+        mode = replace(mode, string_normalization=False)
         not_normalized = fs(source, mode=mode)
         self.assertFormatEqual(source.replace("\\\n", ""), not_normalized)
         black.assert_equivalent(source, not_normalized)
@@ -428,6 +465,38 @@ class BlackTestCase(BlackBaseTestCase):
             )
             self.assertEqual(expected, actual, msg)
 
+    @pytest.mark.no_python2
+    def test_python2_should_fail_without_optional_install(self) -> None:
+        if sys.version_info < (3, 8):
+            self.skipTest(
+                "Python 3.6 and 3.7 will install typed-ast to work and as such will be"
+                " able to parse Python 2 syntax without explicitly specifying the"
+                " python2 extra"
+            )
+
+        source = "x = 1234l"
+        tmp_file = Path(black.dump_to_file(source))
+        try:
+            runner = BlackRunner()
+            result = runner.invoke(black.main, [str(tmp_file)])
+            self.assertEqual(result.exit_code, 123)
+        finally:
+            os.unlink(tmp_file)
+        actual = (
+            runner.stderr_bytes.decode()
+            .replace("\n", "")
+            .replace("\\n", "")
+            .replace("\\r", "")
+            .replace("\r", "")
+        )
+        msg = (
+            "The requested source code has invalid Python 3 syntax."
+            "If you are trying to format Python 2 files please reinstall Black"
+            " with the 'python2' extra: `python3 -m pip install black[python2]`."
+        )
+        self.assertIn(msg, actual)
+
+    @pytest.mark.python2
     @patch("black.dump_to_file", dump_to_stderr)
     def test_python2_print_function(self) -> None:
         source, expected = read_data("python2_print_function")
@@ -518,7 +587,7 @@ class BlackTestCase(BlackBaseTestCase):
         self.assertFormatEqual(contents_spc, fs(contents_tab))
 
     def test_report_verbose(self) -> None:
-        report = black.Report(verbose=True)
+        report = Report(verbose=True)
         out_lines = []
         err_lines = []
 
@@ -528,7 +597,7 @@ class BlackTestCase(BlackBaseTestCase):
         def err(msg: str, **kwargs: Any) -> None:
             err_lines.append(msg)
 
-        with patch("black.out", out), patch("black.err", err):
+        with patch("black.output._out", out), patch("black.output._err", err):
             report.done(Path("f1"), black.Changed.NO)
             self.assertEqual(len(out_lines), 1)
             self.assertEqual(len(err_lines), 0)
@@ -620,7 +689,7 @@ class BlackTestCase(BlackBaseTestCase):
             )
 
     def test_report_quiet(self) -> None:
-        report = black.Report(quiet=True)
+        report = Report(quiet=True)
         out_lines = []
         err_lines = []
 
@@ -630,7 +699,7 @@ class BlackTestCase(BlackBaseTestCase):
         def err(msg: str, **kwargs: Any) -> None:
             err_lines.append(msg)
 
-        with patch("black.out", out), patch("black.err", err):
+        with patch("black.output._out", out), patch("black.output._err", err):
             report.done(Path("f1"), black.Changed.NO)
             self.assertEqual(len(out_lines), 0)
             self.assertEqual(len(err_lines), 0)
@@ -724,7 +793,7 @@ class BlackTestCase(BlackBaseTestCase):
         def err(msg: str, **kwargs: Any) -> None:
             err_lines.append(msg)
 
-        with patch("black.out", out), patch("black.err", err):
+        with patch("black.output._out", out), patch("black.output._err", err):
             report.done(Path("f1"), black.Changed.NO)
             self.assertEqual(len(out_lines), 0)
             self.assertEqual(len(err_lines), 0)
@@ -941,8 +1010,8 @@ class BlackTestCase(BlackBaseTestCase):
         def err(msg: str, **kwargs: Any) -> None:
             err_lines.append(msg)
 
-        with patch("black.out", out), patch("black.err", err):
-            black.DebugVisitor.show(source)
+        with patch("black.debug.out", out):
+            DebugVisitor.show(source)
         actual = "\n".join(out_lines) + "\n"
         log_name = ""
         if expected != actual:
@@ -990,7 +1059,7 @@ class BlackTestCase(BlackBaseTestCase):
         def err(msg: str, **kwargs: Any) -> None:
             err_lines.append(msg)
 
-        with patch("black.out", out), patch("black.err", err):
+        with patch("black.output._out", out), patch("black.output._err", err):
             with self.assertRaises(AssertionError):
                 self.assertFormatEqual("j = [1, 2, 3]", "j = [1, 2, 3,]")
 
@@ -1002,7 +1071,7 @@ class BlackTestCase(BlackBaseTestCase):
     def test_cache_broken_file(self) -> None:
         mode = DEFAULT_MODE
         with cache_dir() as workspace:
-            cache_file = black.get_cache_file(mode)
+            cache_file = get_cache_file(mode)
             with cache_file.open("w") as fobj:
                 fobj.write("this is not a pickle")
             self.assertEqual(black.read_cache(mode), {})
@@ -1056,7 +1125,7 @@ class BlackTestCase(BlackBaseTestCase):
                 "black.write_cache"
             ) as write_cache:
                 self.invokeBlack([str(src), "--diff"])
-                cache_file = black.get_cache_file(mode)
+                cache_file = get_cache_file(mode)
                 self.assertFalse(cache_file.exists())
                 write_cache.assert_not_called()
                 read_cache.assert_not_called()
@@ -1071,7 +1140,7 @@ class BlackTestCase(BlackBaseTestCase):
                 "black.write_cache"
             ) as write_cache:
                 self.invokeBlack([str(src), "--diff", "--color"])
-                cache_file = black.get_cache_file(mode)
+                cache_file = get_cache_file(mode)
                 self.assertFalse(cache_file.exists())
                 write_cache.assert_not_called()
                 read_cache.assert_not_called()
@@ -1109,7 +1178,7 @@ class BlackTestCase(BlackBaseTestCase):
                 black.main, ["-"], input=BytesIO(b"print('hello')")
             )
             self.assertEqual(result.exit_code, 0)
-            cache_file = black.get_cache_file(mode)
+            cache_file = get_cache_file(mode)
             self.assertFalse(cache_file.exists())
 
     def test_read_cache_no_cachefile(self) -> None:
@@ -1358,6 +1427,32 @@ class BlackTestCase(BlackBaseTestCase):
         )
         self.assertEqual(sorted(expected), sorted(sources))
 
+    def test_gitingore_used_as_default(self) -> None:
+        path = Path(THIS_DIR / "data" / "include_exclude_tests")
+        include = re.compile(r"\.pyi?$")
+        extend_exclude = re.compile(r"/exclude/")
+        src = str(path / "b/")
+        report = black.Report()
+        expected: List[Path] = [
+            path / "b/.definitely_exclude/a.py",
+            path / "b/.definitely_exclude/a.pyi",
+        ]
+        sources = list(
+            black.get_sources(
+                ctx=FakeContext(),
+                src=(src,),
+                quiet=True,
+                verbose=False,
+                include=include,
+                exclude=None,
+                extend_exclude=extend_exclude,
+                force_exclude=None,
+                report=report,
+                stdin_filename=None,
+            )
+        )
+        self.assertEqual(sorted(expected), sorted(sources))
+
     @patch("black.find_project_root", lambda *args: THIS_DIR.resolve())
     def test_exclude_for_issue_1572(self) -> None:
         # Exclude shouldn't touch files that were explicitly given to Black through the
@@ -1547,8 +1642,34 @@ class BlackTestCase(BlackBaseTestCase):
                 mode=DEFAULT_MODE,
                 report=report,
             )
-            fsts.assert_called_once()
-            # __BLACK_STDIN_FILENAME__ should have been striped
+            fsts.assert_called_once_with(
+                fast=True, write_back=black.WriteBack.YES, mode=DEFAULT_MODE
+            )
+            # __BLACK_STDIN_FILENAME__ should have been stripped
+            report.done.assert_called_with(expected, black.Changed.YES)
+
+    def test_reformat_one_with_stdin_filename_pyi(self) -> None:
+        with patch(
+            "black.format_stdin_to_stdout",
+            return_value=lambda *args, **kwargs: black.Changed.YES,
+        ) as fsts:
+            report = MagicMock()
+            p = "foo.pyi"
+            path = Path(f"__BLACK_STDIN_FILENAME__{p}")
+            expected = Path(p)
+            black.reformat_one(
+                path,
+                fast=True,
+                write_back=black.WriteBack.YES,
+                mode=DEFAULT_MODE,
+                report=report,
+            )
+            fsts.assert_called_once_with(
+                fast=True,
+                write_back=black.WriteBack.YES,
+                mode=replace(DEFAULT_MODE, is_pyi=True),
+            )
+            # __BLACK_STDIN_FILENAME__ should have been stripped
             report.done.assert_called_with(expected, black.Changed.YES)
 
     def test_reformat_one_with_stdin_and_existing_path(self) -> None:
@@ -1572,7 +1693,7 @@ class BlackTestCase(BlackBaseTestCase):
                 report=report,
             )
             fsts.assert_called_once()
-            # __BLACK_STDIN_FILENAME__ should have been striped
+            # __BLACK_STDIN_FILENAME__ should have been stripped
             report.done.assert_called_with(expected, black.Changed.YES)
 
     def test_gitignore_exclude(self) -> None:
@@ -1619,6 +1740,8 @@ class BlackTestCase(BlackBaseTestCase):
             Path(path / "b/.definitely_exclude/a.pie"),
             Path(path / "b/.definitely_exclude/a.py"),
             Path(path / "b/.definitely_exclude/a.pyi"),
+            Path(path / ".gitignore"),
+            Path(path / "pyproject.toml"),
         ]
         this_abs = THIS_DIR.resolve()
         sources.extend(
@@ -1782,7 +1905,7 @@ class BlackTestCase(BlackBaseTestCase):
             critical=fail,
             log=fail,
         ):
-            ff(THIS_FILE)
+            ff(THIS_DIR / "util.py")
 
     def test_invalid_config_return_code(self) -> None:
         tmp_file = Path(black.dump_to_file())
@@ -1842,6 +1965,39 @@ class BlackTestCase(BlackBaseTestCase):
             self.assertEqual(black.find_project_root((src_dir,)), src_dir.resolve())
             self.assertEqual(black.find_project_root((src_python,)), src_dir.resolve())
 
+    @patch(
+        "black.files.find_user_pyproject_toml",
+        black.files.find_user_pyproject_toml.__wrapped__,
+    )
+    def test_find_user_pyproject_toml_linux(self) -> None:
+        if system() == "Windows":
+            return
+
+        # Test if XDG_CONFIG_HOME is checked
+        with TemporaryDirectory() as workspace:
+            tmp_user_config = Path(workspace) / "black"
+            with patch.dict("os.environ", {"XDG_CONFIG_HOME": workspace}):
+                self.assertEqual(
+                    black.files.find_user_pyproject_toml(), tmp_user_config.resolve()
+                )
+
+        # Test fallback for XDG_CONFIG_HOME
+        with patch.dict("os.environ"):
+            os.environ.pop("XDG_CONFIG_HOME", None)
+            fallback_user_config = Path("~/.config").expanduser() / "black"
+            self.assertEqual(
+                black.files.find_user_pyproject_toml(), fallback_user_config.resolve()
+            )
+
+    def test_find_user_pyproject_toml_windows(self) -> None:
+        if system() != "Windows":
+            return
+
+        user_config_path = Path.home() / ".black"
+        self.assertEqual(
+            black.files.find_user_pyproject_toml(), user_config_path.resolve()
+        )
+
     def test_bpo_33660_workaround(self) -> None:
         if system() == "Windows":
             return
@@ -1885,6 +2041,27 @@ class BlackTestCase(BlackBaseTestCase):
         actual = result.output
         actual = diff_header.sub(DETERMINISTIC_HEADER, actual)
         self.assertEqual(actual, expected)
+
+    @pytest.mark.python2
+    def test_docstring_reformat_for_py27(self) -> None:
+        """
+        Check that stripping trailing whitespace from Python 2 docstrings
+        doesn't trigger a "not equivalent to source" error
+        """
+        source = (
+            b'def foo():\r\n    """Testing\r\n    Testing """\r\n    print "Foo"\r\n'
+        )
+        expected = 'def foo():\n    """Testing\n    Testing"""\n    print "Foo"\n'
+
+        result = CliRunner().invoke(
+            black.main,
+            ["-", "-q", "--target-version=py27"],
+            input=BytesIO(source),
+        )
+
+        self.assertEqual(result.exit_code, 0)
+        actual = result.output
+        self.assertFormatEqual(actual, expected)
 
 
 with open(black.__file__, "r", encoding="utf-8") as _bf:

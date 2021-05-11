@@ -126,7 +126,7 @@ async def handle(request: web.Request, executor: Executor) -> web.Response:
             target_versions=versions,
             is_pyi=pyi,
             line_length=line_length,
-            string_normalization=not skip_string_normalization,
+            string_normalization=False,
             magic_trailing_comma=not skip_magic_trailing_comma,
         )
         req_bytes = await request.content.read()
